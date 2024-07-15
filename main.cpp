@@ -287,6 +287,13 @@ HICON createBatteryIcon(int batteryLevel) {
     HBITMAP hBitmap = CreateCompatibleBitmap(GetDC(NULL), 16, 16);
     HDC hdcMem = CreateCompatibleDC(NULL);
     SelectObject(hdcMem, hBitmap);
+    // 1.まず、アイコンのイメージと同じサイズのマスクビットマップを作成します。
+    // このマスクでは、透明にしたい部分を白（RGB(255, 255, 255)）、それ以外を黒（RGB(0, 0, 0)）で塗ります。
+    // 2.次に、CreateIconIndirect関数を使用して、カラービットマップとマスクビットマップからアイコンを作成します。
+    HBITMAP hBitmapMask = CreateBitmap(16, 16, 1, 1, NULL); // マスクビットマップの作成
+    HDC hdcMemMask = CreateCompatibleDC(NULL);
+    SelectObject(hdcMemMask, hBitmapMask);
+    // PatBlt(hdcMemMask, 0, 0, 16, 16, WHITENESS); // マスクを白で塗りつぶし
 
     // 2次元配列を参照して描画
     COLORREF color;
@@ -297,15 +304,23 @@ HICON createBatteryIcon(int batteryLevel) {
 
     for (int y = 0; y < 16; ++y) {
         for (int x = 0; x < 16; ++x) {
-            if (image[y][x] == 1) SetPixel(hdcMem, x, y, color);
+            if (image[y][x] == 1) {
+                SetPixel(hdcMem, x, y, color);
+                // SetPixel(hdcMemMask, x, y, RGB(255, 255, 255));
+            } else {
+                SetPixel(hdcMemMask, x, y, RGB(0, 0, 0));
+            }
         }
     }
 
-    ICONINFO iconInfo = { TRUE, 0, 0, hBitmap, hBitmap };
+    ICONINFO iconInfo = { TRUE, 0, 0, hBitmapMask, hBitmap };
+    // iconInfo.hbmMask = hBitmapMask; // マスクビットマップを設定
     HICON hIcon = CreateIconIndirect(&iconInfo);
 
     DeleteDC(hdcMem);
     DeleteObject(hBitmap);
+    DeleteDC(hdcMemMask);
+    DeleteObject(hBitmapMask);
 
     return hIcon;
 }
