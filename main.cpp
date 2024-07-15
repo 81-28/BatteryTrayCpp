@@ -247,7 +247,7 @@ int getBatteryLevel() {
         return static_cast<int>(status.BatteryLifePercent);
     }
     else {
-        std::cerr << "バッテリー残量の取得に失敗しました。" << std::endl;
+        std::cerr << "バッテリー残量の取得に失敗しました" << std::endl;
         return -1;
     }
 }
@@ -328,6 +328,10 @@ HICON createBatteryIcon(int batteryLevel) {
 // タスクトレイアイコンを更新する関数
 void updateBatteryIcon() {
     int batteryLevel = getBatteryLevel();
+    if (batteryLevel > 100 || batteryLevel < 0) {
+        std::cerr << "バッテリ残量取得に失敗しました" << std::endl;
+        exit(1);
+    }
     if (batteryLevel != currentBatteryLevel) {
         currentBatteryLevel = batteryLevel;
         if (batteryLevel != -1) {
@@ -343,7 +347,7 @@ void updateBatteryIcon() {
 }
 
 // ウィンドウプロシージャ
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { 
     switch (uMsg) {
     case WM_CREATE:
         timerID = SetTimer(hwnd, 1, 60000, NULL);
