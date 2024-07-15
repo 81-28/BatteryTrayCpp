@@ -257,15 +257,21 @@ static int currentBatteryLevel = 0;
 
 // バッテリー残量に応じたアイコンを作成する関数
 HICON createBatteryIcon(int batteryLevel) {
+    HDC hdcScreen = GetDC(NULL);
+    HDC hdcMem = CreateCompatibleDC(hdcScreen);
+    HBITMAP hBitmap = CreateCompatibleBitmap(hdcScreen, 16, 16);
+    HBITMAP hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
+
+    // 画像データを初期化
     byte image[16][16] = { 0 };
+
     if (batteryLevel == 100) {
         for (int i = 0; i < 16; i++) {
             for (int j = 0; j < 16; j++) {
                 image[i][j] = FullBattery[i][j];
             }
         }
-    }
-    else {
+    } else {
         int leftIndex = (batteryLevel < 10) ? 0 : batteryLevel / 10;
         int rightIndex = batteryLevel % 10;
         byte(*left)[8] = points[leftIndex];
@@ -273,54 +279,38 @@ HICON createBatteryIcon(int batteryLevel) {
 
         // 水平に配列を結合
         for (int j = 0; j < 16; ++j) {
-            // leftを結合
             for (int k = 0; k < 8; ++k) {
-                image[j][k] = left[j][k];
-            }
-            // rightを結合
-            for (int k = 0; k < 8; ++k) {
-                image[j][k + 8] = right[j][k];
+                image[j][k] = left[j][k]; // leftを結合
+                image[j][k + 8] = right[j][k]; // rightを結合
             }
         }
     }
 
-    HBITMAP hBitmap = CreateCompatibleBitmap(GetDC(NULL), 16, 16);
-    HDC hdcMem = CreateCompatibleDC(NULL);
-    SelectObject(hdcMem, hBitmap);
-    // 1.まず、アイコンのイメージと同じサイズのマスクビットマップを作成します。
-    // このマスクでは、透明にしたい部分を白（RGB(255, 255, 255)）、それ以外を黒（RGB(0, 0, 0)）で塗ります。
-    // 2.次に、CreateIconIndirect関数を使用して、カラービットマップとマスクビットマップからアイコンを作成します。
-    HBITMAP hBitmapMask = CreateBitmap(16, 16, 1, 1, NULL); // マスクビットマップの作成
-    HDC hdcMemMask = CreateCompatibleDC(NULL);
-    SelectObject(hdcMemMask, hBitmapMask);
-    // PatBlt(hdcMemMask, 0, 0, 16, 16, WHITENESS); // マスクを白で塗りつぶし
-
-    // 2次元配列を参照して描画
-    COLORREF color;
-    if (batteryLevel > 80) color = RGB(0, 255, 0);
-    else if (batteryLevel > 50) color = RGB(255, 255, 255);
-    else if (batteryLevel > 20) color = RGB(255, 143, 63);
-    else color = RGB(255, 0, 0);
-
+    // ビットマップに画像データを描画
     for (int y = 0; y < 16; ++y) {
         for (int x = 0; x < 16; ++x) {
-            if (image[y][x] == 1) {
-                SetPixel(hdcMem, x, y, color);
-                // SetPixel(hdcMemMask, x, y, RGB(255, 255, 255));
-            } else {
-                SetPixel(hdcMemMask, x, y, RGB(0, 0, 0));
-            }
+            COLORREF color = (image[y][x] == 1) ? RGB(0, 0, 0) : RGB(255, 255, 255);
+            SetPixel(hdcMem, x, y, color);
         }
     }
 
-    ICONINFO iconInfo = { TRUE, 0, 0, hBitmapMask, hBitmap };
-    // iconInfo.hbmMask = hBitmapMask; // マスクビットマップを設定
+    SelectObject(hdcMem, hOldBitmap);
+    DeleteDC(hdcMem);
+    ReleaseDC(NULL, hdcScreen);
+
+    // アイコン情報を設定
+    ICONINFO iconInfo = { 0 };
+    iconInfo.fIcon = TRUE; // アイコンを指定
+    iconInfo.xHotspot = 0;
+    iconInfo.yHotspot = 0;
+    iconInfo.hbmMask = hBitmap; // マスクビットマップ
+    iconInfo.hbmColor = hBitmap; // カラービットマップ
+
+    // アイコンを作成
     HICON hIcon = CreateIconIndirect(&iconInfo);
 
-    DeleteDC(hdcMem);
+    // 使用したビットマップを削除
     DeleteObject(hBitmap);
-    DeleteDC(hdcMemMask);
-    DeleteObject(hBitmapMask);
 
     return hIcon;
 }
