@@ -265,7 +265,7 @@ HICON createBatteryIcon(int batteryLevel) {
             }
         }
     } else {
-        int leftIndex = (batteryLevel < 10) ? 0 : batteryLevel / 10;
+        int leftIndex = (batteryLevel < 10) ? 10 : batteryLevel / 10;
         int rightIndex = batteryLevel % 10;
         byte(*left)[8] = points[leftIndex];
         byte(*right)[8] = points[rightIndex];
